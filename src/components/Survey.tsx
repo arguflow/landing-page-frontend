@@ -1,5 +1,19 @@
 import { Transition } from "solid-headless";
-import { createSignal, For } from "solid-js";
+import {
+  Accessor,
+  createEffect,
+  createSignal,
+  For,
+  onCleanup,
+  Signal,
+} from "solid-js";
+import { CgChevronDoubleRight } from "solid-icons/cg";
+
+interface SurveyResult {
+  answer: string;
+  count: number;
+  percentage: number;
+}
 
 const answers = [
   {
@@ -29,18 +43,108 @@ const answers = [
   },
 ];
 
-export const Survey = () => {
-  const [show, setShow] = createSignal(true);
+const getGradientStyle = (percentage: number) => {
+  const isDarkMode =
+    window.matchMedia &&
+    window.matchMedia("(prefers-color-scheme: dark)").matches;
+  const baseColor = isDarkMode ? "#3C3C3C" : "#DCDCDC";
+  const secondaryColor = isDarkMode ? "#505050" : "#F8F8F8";
+  return `linear-gradient(90deg, ${baseColor} 0%, ${baseColor} ${percentage}%, ${secondaryColor} ${percentage}%, ${secondaryColor} 100%)`;
+};
 
+const setLocalStorageAnswer = (answer: string) => {
+  window.localStorage.setItem("surveyAnswer", answer);
+};
+const getLocalStorageAnswer = () => {
+  return window.localStorage.getItem("surveyAnswer") ?? "";
+};
+const setLocalStorageJoined = (email: string) => {
+  window.localStorage.setItem("joined", email);
+};
+const getLocalStorageJoined = () => {
+  return window.localStorage.getItem("joined") ?? "";
+};
+
+export const Survey = () => {
+  const [showAnswerChoices, setShowAnswerChoices] = createSignal(
+    getLocalStorageAnswer() === ""
+  );
+  const [showWaitlistForm, setShowWaitlistForm] = createSignal(
+    getLocalStorageAnswer() !== "" && getLocalStorageJoined() === ""
+  );
+  const [showThankYou, setShowThankYou] = createSignal(
+    getLocalStorageAnswer() !== "" && getLocalStorageJoined() !== ""
+  );
+  const [showSurveyResults, setShowSurveyResults] = createSignal(
+    getLocalStorageAnswer() !== ""
+  );
+
+  createEffect(() => {
+    fetch("https://api.arguflow.gg/visits", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        page_visited: "https://arguflow.gg/",
+      }),
+    });
+  });
+
+  return (
+    <div>
+      <div class="block z-10">
+        <AnswerChoices
+          show={showAnswerChoices}
+          setShow={(newShow: boolean) => {
+            setShowAnswerChoices(newShow);
+            setShowWaitlistForm(!newShow);
+            setShowSurveyResults(!newShow);
+          }}
+        />
+
+        <WaitlistForm
+          show={showWaitlistForm}
+          setShow={(newShow: boolean) => {
+            setShowWaitlistForm(newShow);
+            setShowThankYou(!newShow);
+          }}
+        />
+        <ThankYou show={showThankYou} />
+        <SurveyResults
+          show={showSurveyResults}
+          setShow={setShowSurveyResults}
+        />
+      </div>
+    </div>
+  );
+};
+
+const AnswerChoices = (props: {
+  show: Accessor<boolean>;
+  setShow: (value: boolean) => void;
+}) => {
   const submitSurvey = (answer: string) => {
-    console.log("submitted", answer);
-    setShow(false);
+    fetch("https://api.arguflow.gg/surveys", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        question:
+          "Rate the need for debate-enhancing software in your organization to join the waitlist!",
+        answer,
+      }),
+    });
+
+    setLocalStorageAnswer(answer);
+    props.setShow(false);
   };
 
   return (
-    <div class="flex flex-col items-center w-full px-4 space-y-4">
+    <div class="mt-12">
       <Transition
-        show={show()}
+        show={props.show()}
         class="w-full h-full flex flex-col items-center px-4 space-y-4"
         enter="transform transition duration-[600ms]"
         enterFrom="opacity-0"
@@ -49,11 +153,11 @@ export const Survey = () => {
         leaveFrom="opacity-100 "
         leaveTo="opacity-0 "
       >
-        <p class="text-xl dark:text-white text-cod-gray font-medium text-center">
+        <p class="text-xl font-semibold dark:text-white text-cod-gray text-center">
           Rate the need for debate-enhancing software in your organization to
           join the waitlist!
         </p>
-        <div class="flex flex-col space-y-2 w-full px-4">
+        <div class="flex flex-col space-y-2 w-full px-4 font-medium">
           <For each={answers}>
             {(answer) => (
               <button
@@ -84,58 +188,156 @@ export const Survey = () => {
         <span class="hidden text-green-500 border border-green-500"></span>
         <span class="hidden text-yellow-500 border border-yellow-500"></span>
       </Transition>
-      <Transition
-        show={!show()}
-        class="w-full flex flex-col items-center px-4 space-y-4 absolute mt-4"
-        enter="transform transition duration-[2000ms]"
-        enterFrom="opacity-0 "
-        enterTo="opacity-100 "
-        leave="transform duration-200 transition ease-in-out"
-        leaveFrom="opacity-100 "
-        leaveTo="opacity-0 "
-      >
-        <WaitlistForm />
-      </Transition>
     </div>
   );
 };
 
-const WaitlistForm = () => {
-  
+const WaitlistForm = (props: {
+  show: Accessor<boolean>;
+  setShow: (value: boolean) => void;
+}) => {
+  const [email, setEmail] = createSignal("");
+
+  const submitEmail = () => {
+    fetch("https://api.arguflow.gg/waitlists", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        email: email(),
+      }),
+    });
+
+    setLocalStorageJoined(email());
+    props.setShow(false);
+  };
 
   return (
-    <div class="flex flex-col items-center w-full px-4 space-y-4">
-      <p class="text-xl dark:text-white text-cod-gray font-medium text-center">
-        Join our wait list!
-      </p>
-
-      <form class="flex flex-row items-center space-x-2 w-full justify-center">
-        <input
-          placeholder="email address"
-          class="px-3 py-1 bg-[#235761] rounded-xl text-white placeholder:text-gray-400 dark:bg-[#00DDE7] dark:text-black dark:placeholder:text-gray-600"
-        ></input>
-        <button
-          class="rounded-2xl border border-black p-1 dark:border-white dark:text-white"
-          onClick={(e) => {
-            e.preventDefault();
-            console.log("submitted");
-          }}
-        >
-          <DoubleRightArrow />
-        </button>
-      </form>
-    </div>
-  );
-};
-
-const DoubleRightArrow = () => {
-  return (
-    <svg
-      class="h-4 w-4"
-      viewBox="-32 0 512 512"
-      xmlns="http://www.w3.org/2000/svg"
+    <Transition
+      show={props.show()}
+      class="w-full flex flex-col items-center px-4 space-y-4"
+      enter="transform transition duration-[2000ms]"
+      enterFrom="opacity-0 "
+      enterTo="opacity-100 "
+      leave="transform duration-200 transition ease-in-out"
+      leaveFrom="opacity-100 "
+      leaveTo="opacity-0 "
     >
-      <path d="M224.3 273l-136 136c-9.4 9.4-24.6 9.4-33.9 0l-22.6-22.6c-9.4-9.4-9.4-24.6 0-33.9l96.4-96.4-96.4-96.4c-9.4-9.4-9.4-24.6 0-33.9L54.3 103c9.4-9.4 24.6-9.4 33.9 0l136 136c9.5 9.4 9.5 24.6.1 34zm192-34l-136-136c-9.4-9.4-24.6-9.4-33.9 0l-22.6 22.6c-9.4 9.4-9.4 24.6 0 33.9l96.4 96.4-96.4 96.4c-9.4 9.4-9.4 24.6 0 33.9l22.6 22.6c9.4 9.4 24.6 9.4 33.9 0l136-136c9.4-9.2 9.4-24.4 0-33.8z" />
-    </svg>
+      <div class="flex flex-col items-center w-full px-4 space-y-4">
+        <p class="text-xl dark:text-white text-cod-gray font-medium text-center">
+          Join our waitlist!
+        </p>
+
+        <form class="flex flex-row items-center space-x-2 w-full justify-center">
+          <input
+            placeholder="email address"
+            type="email"
+            value={email()}
+            onInput={(e) => setEmail(e.currentTarget.value)}
+            class="px-3 py-1 bg-[#235761] rounded-xl text-white placeholder:text-gray-400 dark:bg-[#00DDE7] dark:text-black dark:placeholder:text-gray-600"
+          ></input>
+          <button
+            class="rounded-2xl border border-black p-1 dark:border-white dark:text-white"
+            onClick={(e) => {
+              e.preventDefault();
+              submitEmail();
+            }}
+          >
+            <CgChevronDoubleRight class="text-xl" />
+          </button>
+        </form>
+      </div>
+    </Transition>
+  );
+};
+
+const ThankYou = (props: { show: Accessor<boolean> }) => {
+  return (
+    <Transition
+      show={props.show()}
+      class="w-full flex flex-col items-center px-4 space-y-4"
+      enter="transform transition duration-[2000ms]"
+      enterFrom="opacity-0 "
+      enterTo="opacity-100 "
+      leave="transform duration-200 transition ease-in-out"
+      leaveFrom="opacity-100 "
+      leaveTo="opacity-0 "
+    >
+      <div class="flex flex-col items-center w-full px-4 space-y-4">
+        <p class="text-xl dark:text-white text-cod-gray font-medium text-center">
+          Thank you for joining our waitlist! We're excited to have you on
+          board. We'll keep you updated on our progress and reach out as soon as
+          a spot opens up. Stay tuned!
+        </p>
+      </div>
+    </Transition>
+  );
+};
+
+const SurveyResults = (props: {
+  show: Accessor<boolean>;
+  setShow: (value: boolean) => void;
+}) => {
+  const [surveyResults, setSurveyResults] = createSignal<SurveyResult[]>([]);
+
+  createEffect(() => {
+    let fetchInterval = setInterval(() => {
+      fetch("https://api.arguflow.gg/surveys/percentages", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          question:
+            "Rate the need for debate-enhancing software in your organization to join the waitlist!",
+        }),
+      })
+        .then((res) => res.json())
+        .then((data) => {
+          setSurveyResults(data);
+        });
+    }, 1000);
+
+    onCleanup(() => {
+      clearInterval(fetchInterval);
+    });
+  });
+
+  return (
+    <Transition
+      show={props.show()}
+      class="w-full flex flex-col items-center px-4 space-y-4 mt-12"
+      enter="transform transition duration-[2000ms]"
+      enterFrom="opacity-0 "
+      enterTo="opacity-100 "
+      leave="transform duration-200 transition ease-in-out"
+      leaveFrom="opacity-100 "
+      leaveTo="opacity-0 "
+    >
+      <div class="flex flex-col items-center w-full px-4 space-y-4">
+        <p class="text-xl dark:text-white text-cod-gray font-medium text-center">
+          Survey Results
+        </p>
+        <For each={surveyResults()}>
+          {(result) => (
+            <div
+              class={`flex flex-row items-center space-x-2 w-full rounded-xl p-2 border border-alabaster-600/30 shadow-lg dark:border-none bg-alabaster-500 dark:bg-mine-shaft-500`}
+              style={{
+                background: getGradientStyle(result.percentage),
+              }}
+            >
+              <p class="dark:text-white text-cod-gray font-medium">
+                {result.answer}
+              </p>
+              <p class="dark:text-white text-cod-gray">({result.count})</p>
+              <p class="dark:text-white text-cod-gray font-medium">
+                {result.percentage.toFixed(2)}%
+              </p>
+            </div>
+          )}
+        </For>
+      </div>
+    </Transition>
   );
 };
