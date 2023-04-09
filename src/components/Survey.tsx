@@ -1,13 +1,9 @@
 import { Transition } from "solid-headless";
-import {
-  Accessor,
-  createEffect,
-  createSignal,
-  For,
-  onCleanup,
-  Signal,
-} from "solid-js";
+import { Accessor, createEffect, createSignal, For, onCleanup } from "solid-js";
 import { CgChevronDoubleRight } from "solid-icons/cg";
+
+const question =
+  "Evaluate debate software to join the waitlist and shape your ideal solution!";
 
 interface SurveyResult {
   answer: string;
@@ -19,7 +15,8 @@ const answers = [
   {
     id: "A",
     primaryText: "Critical",
-    secondaryText: "Software can significantly improve existing challenges.",
+    secondaryText:
+      "Debate software could significantly improve existing processes.",
     color: "purple-500",
   },
   {
@@ -32,7 +29,7 @@ const answers = [
     id: "C",
     primaryText: "Not Important",
     secondaryText:
-      "Satisified with current processes; no additional software needed.",
+      "Satisified with current argumentation processes; no additional software needed.",
     color: "green-500",
   },
   {
@@ -93,7 +90,7 @@ export const Survey = () => {
 
   return (
     <div>
-      <div class="block z-10">
+      <div class="z-0">
         <AnswerChoices
           show={showAnswerChoices}
           setShow={(newShow: boolean) => {
@@ -102,7 +99,8 @@ export const Survey = () => {
             setShowSurveyResults(!newShow);
           }}
         />
-
+      </div>
+      <div class="z-10">
         <WaitlistForm
           show={showWaitlistForm}
           setShow={(newShow: boolean) => {
@@ -131,8 +129,7 @@ const AnswerChoices = (props: {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        question:
-          "Rate the need for debate-enhancing software in your organization to join the waitlist!",
+        question,
         answer,
       }),
     });
@@ -154,8 +151,7 @@ const AnswerChoices = (props: {
         leaveTo="opacity-0 "
       >
         <p class="text-xl font-semibold dark:text-white text-cod-gray text-center">
-          Rate the need for debate-enhancing software in your organization to
-          join the waitlist!
+          {question}
         </p>
         <div class="flex flex-col space-y-2 w-full px-4 font-medium">
           <For each={answers}>
@@ -289,8 +285,7 @@ const SurveyResults = (props: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          question:
-            "Rate the need for debate-enhancing software in your organization to join the waitlist!",
+          question,
         }),
       })
         .then((res) => res.json())
