@@ -306,7 +306,7 @@ const SurveyResults = (props: {
 
   return (
     <Transition
-      show={props.show()}
+      show={props.show() && surveyResults().length > 0}
       class="w-full flex flex-col items-center px-4 space-y-4 mt-12"
       enter="transform transition duration-[2000ms]"
       enterFrom="opacity-0 "
