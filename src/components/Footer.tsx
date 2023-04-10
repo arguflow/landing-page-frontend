@@ -1,6 +1,7 @@
 import { RiLogosTwitterLine } from 'solid-icons/ri'
 import { RiLogosYoutubeLine } from 'solid-icons/ri'
 import { RiLogosTwitchLine } from 'solid-icons/ri'
+import { RiLogosGithubLine } from 'solid-icons/ri'
 
 export const Footer = () => {
   return (
@@ -13,6 +14,9 @@ export const Footer = () => {
       </a>
       <a href="https://www.twitch.tv/arguflow">
         <RiLogosTwitchLine class="w-6 h-6 fill-cod-gray dark:fill-white" />
+      </a>
+      <a href="https://github.com/arguflow">
+        <RiLogosGithubLine class="w-6 h-6 fill-cod-gray dark:fill-white" />
       </a>
     </div>
   );
